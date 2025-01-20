@@ -1,9 +1,40 @@
 import tkinter as tk
-import tkinter.ttk
+import tkinter.ttk as ttk
+import tkinter.messagebox
 
-class App(tk.Frame):
-    def __init__(self, master):
+class UIMain(ttk.Frame):
+    def __init__(self, master=None, form_name="Test", form_size="1024x768"):
         super().__init__(master)
+        self.key_label, self.key_combobox, self.method_label, self.method_combobox = None, None, None, None
         self.pack()
+        self.create_keybox(["arfasad-asdsa", "sgfdgfd-asda"])
+        self.create_methodbox(["Организации", "Терминалы"])
+        self.master.title(form_name)
+        self.master.resizable(False, False)
+        self.master.geometry(form_size)
+
+    def create_keybox(self, menu:list, name="API key", width=50, font=("Arial", 10)):
+        self.key_label = ttk.Label(self, text=name, width=width, font=font)
+        self.key_label.pack()
+        self.key_combobox = ttk.Combobox(self, values=menu, width=width, font=font)
+        self.key_combobox.pack()
+
+    def create_methodbox(self, menu:list, name="API Запрос", width=50, font=("Arial", 10)):
+        self.method_label = ttk.Label(self, text=name, width=width, font=font)
+        self.method_label.pack()
+        self.method_combobox = ttk.Combobox(self, values=menu, width=width, font=font, state="readonly")
+        self.method_combobox.pack()
+
+        self.btnHello = tkinter.ttk.Button(self,
+                                           text="Пpивeтcтвoвaть\nпoльзoвaтeля")
+        self.btnHello.bind("<ButtonRelease>", self.say_hello)
+        self.btnHello.pack()
+        self.btnShow = ttk.Button(self)
+        self.btnShow["text"] = "Выход"
+        self.btnShow["command"] = self.master.destroy
+        self.btnShow.pack(side="bottom")
+
+    def say_hello(self, evt):
+        tk.messagebox.showinfo("Test", "Привет, пользователь!")
 
 
