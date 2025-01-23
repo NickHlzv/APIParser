@@ -25,19 +25,16 @@ class NamedTextbox(tk.Text, tk.Label):
         self.textbox.pack(anchor=anchor)
 
 
-class UIMain(ttk.Frame):
+class UIMain(tk.Tk):
     def __init__(self, master=None, form_name="Application", form_size="1024x768"):
         super().__init__(master)
-        self.pack()
-        self.master.title(form_name)
-        self.master.resizable(False, False)
-        self.master.geometry(form_size)
+        self.title(form_name)
+        self.resizable(False, False)
+        self.geometry(form_size)
         ui_font = ("Arial", 14)
         self.company_name_box = NamedCombobox(["Жар-пицца", "Италиан-пицца"], name="Ввод Организации")
         self.company_name_box.pack(anchor="nw")
-        self.company_name_box.pack(anchor="nw")
         self.apikey_box = NamedCombobox(["arfasad-asdsa", "sgfdgfd-asda"], name="Ввод API ключа")
-        self.apikey_box.pack(pady=5, anchor="nw")
         self.apikey_box.pack(pady=5, anchor="nw")
         self.company_edit_name = NamedCombobox(["Жар-пицца", "Италиан-пицца"], name="Изменение Организации")
         self.company_edit_name.pack(anchor="n")
