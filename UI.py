@@ -1,4 +1,4 @@
-from tkinter import font
+from tkinter import font as tkfont
 import tkinter as tk
 import tkinter.ttk as ttk
 import logging
@@ -73,7 +73,7 @@ class UIMain(tk.Tk):
 
         #Buttons
         self.dbAppendBtn = tk.Button(self, text="Добавить в справочник ключ", font=self.font)
-        bold_font = tk.font.Font(family="Arial", size=12, weight="bold")
+        bold_font = tkfont.Font(family="Arial", size=12, weight="bold")
         self.sendRequestBtn = tk.Button(self, text="Выполнить", font=bold_font)
 
         #Text boxes
