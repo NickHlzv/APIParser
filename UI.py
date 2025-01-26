@@ -1,3 +1,4 @@
+from tkinter import font
 import tkinter as tk
 import tkinter.ttk as ttk
 import logging
@@ -11,7 +12,34 @@ handlerUI = logging.FileHandler(f"{__name__}.log")
 handlerUI.setFormatter(logging.Formatter("%(name)s %(asctime)s %(levelname)s %(message)s"))
 loggerUI.addHandler(handlerUI)
 
+#  Redefine new class of Textbox with simple RightClick menu from standard Textbox
+class TextContext(tk.Text):
+    """
+    Extended entry widget that includes a context menu
+    with Copy, Cut and Paste commands.
+    """
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.menu = tk.Menu(self, tearoff=False)
+        self.menu.add_command(label="Копировать", command=self.popup_copy)
+        self.menu.add_command(label="Вырезать", command=self.popup_cut)
+        self.menu.add_command(label="Вставить", command=self.popup_paste)
+        self.bind("<Button-3>", self.display_popup)
+
+    def display_popup(self, event):
+        self.menu.post(event.x_root, event.y_root)
+
+    def popup_copy(self):
+        self.event_generate("<<Copy>>")
+
+    def popup_cut(self):
+        self.event_generate("<<Cut>>")
+
+    def popup_paste(self):
+        self.event_generate("<<Paste>>")
+
+#   Define main window class
 class UIMain(tk.Tk):
     def __init__(self, master=None, form_name="Test", form_size="1024x768"):
         super().__init__(master)
@@ -34,7 +62,7 @@ class UIMain(tk.Tk):
         self.jsonRequestLabel = tk.Label(self, text="JSON", font=self.font, anchor="w")
         self.jsonTipsLabel = tk.Label(self, text="Подсказки по JSON", font=self.font, anchor="w")
         self.jsonStatusLabel = tk.Label(self, text="Response Status", font=("Arial", 14), fg="green", anchor="e")
-        self.jsonResponseLabel = tk.Label(self, text="JSON Ответ", font=self.font)
+        self.jsonResponseLabel = tk.Label(self, text="JSON Ответ", font=self.font, anchor="e")
         self.urlLabel = tk.Label(self, text="URL: https://api-ru.iiko.services/api/1/deliveries/by_delivery_date_and_status",
                                   font=self.font, anchor="w")
 
@@ -45,13 +73,14 @@ class UIMain(tk.Tk):
 
         #Buttons
         self.dbAppendBtn = tk.Button(self, text="Добавить в справочник ключ", font=self.font)
-        self.sendRequestBtn = tk.Button(self, text="Выполнить")
+        bold_font = tk.font.Font(family="Arial", size=12, weight="bold")
+        self.sendRequestBtn = tk.Button(self, text="Выполнить", font=bold_font)
 
         #Text boxes
-        self.jsonRequestBox = tk.Text(self, height = 50, font=self.font,
+        self.jsonRequestBox = TextContext(self, height = 50, font=self.font,
                                             wrap="none")
-        self.jsonTipsBox = tk.Text(self, width=30, height = 30, font=self.font, wrap="none")
-        self.jsonResponseBox = tk.Text(self, width=30, height = 30, font=self.font, wrap="none")
+        self.jsonTipsBox = TextContext(self, width=30, height = 30, font=self.font, wrap="none", state="disabled")
+        self.jsonResponseBox = TextContext(self, width=30, height = 30, font=self.font, wrap="none")
 
         loggerUI.info("Main window objects initialized")
 
@@ -67,12 +96,16 @@ class UIMain(tk.Tk):
         self.keyBox.place(x=80, y=26, relwidth=0.4)
         self.methodLabel.place(x=2, y=49, width=80)
         self.methodBox.place(x=80, y=49, relwidth=0.4)
-        self.jsonStatusLabel.place(relx=0.7, y=3,  relwidth=0.3, height=55)
         self.dbAppendBtn.place(x=2, y=71, width=185)
+        self.sendRequestBtn.place(x=187, y=71, width=100, height = 28)
         self.urlLabel.place(x=2, y=97, width=450)
         self.jsonRequestLabel.place(x=2, y=115, width=38)
         self.jsonRequestBox.place(x=2, y=135, relwidth=0.37, relheight=0.8)
         self.jsonTipsBox.place(relx=0.37, y=135, relwidth=0.25, relheight=0.8)
+        self.jsonTipsLabel.place(relx=0.37, y=115, width=121)
+        self.jsonStatusLabel.place(relx=0.7, y=3, relwidth=0.3, height=55)
+        self.jsonResponseLabel.place(relx=0.7, y=60, relwidth=0.3)
+        self.jsonResponseBox.place(relx=0.62, y=80, relwidth=0.378, relheight=0.86)
 
 
 
