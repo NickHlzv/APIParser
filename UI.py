@@ -1,9 +1,10 @@
+from re import search
 from tkinter import font as tkfont
 import tkinter as tk
 import tkinter.ttk as ttk
 import logging
 
-#   Set logging module UI.py
+#  Set logging module UI.py
 
 loggerUI = logging.getLogger(__name__)
 loggerUI.setLevel(logging.INFO)
@@ -17,7 +18,60 @@ ui_font = ("Arial", 10)
 #  Redefine new class of Textbox with simple RightClick menu from standard Textbox
 class TextContext(tk.Text):
     """
+    Extended text widget that includes a context menu
+    with Copy, Cut and Paste commands.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.menu = tk.Menu(self, tearoff=False)
+        self.menu.add_command(label="Копировать", command=self.popup_copy)
+        self.menu.add_command(label="Вырезать", command=self.popup_cut)
+        self.menu.add_command(label="Вставить", command=self.popup_paste)
+        self.bind("<Button-3>", self.display_popup)
+
+    def display_popup(self, event):
+        self.menu.post(event.x_root, event.y_root)
+
+    def popup_copy(self):
+        self.event_generate("<<Copy>>")
+
+    def popup_cut(self):
+        self.event_generate("<<Cut>>")
+
+    def popup_paste(self):
+        self.event_generate("<<Paste>>")
+
+#  Redefine new class of Entry with simple RightClick menu from standard Textbox
+class EntryContext(tk.Entry):
+    """
     Extended entry widget that includes a context menu
+    with Copy, Cut and Paste commands.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.menu = tk.Menu(self, tearoff=False)
+        self.menu.add_command(label="Копировать", command=self.popup_copy)
+        self.menu.add_command(label="Вырезать", command=self.popup_cut)
+        self.menu.add_command(label="Вставить", command=self.popup_paste)
+        self.bind("<Button-3>", self.display_popup)
+
+    def display_popup(self, event):
+        self.menu.post(event.x_root, event.y_root)
+
+    def popup_copy(self):
+        self.event_generate("<<Copy>>")
+
+    def popup_cut(self):
+        self.event_generate("<<Cut>>")
+
+    def popup_paste(self):
+        self.event_generate("<<Paste>>")
+
+#   Redefine new class of Combobox with simple RightClick menu from standard Textbox
+class ComboboxContext(ttk.Combobox):
+    """
+    Extended combobox widget that includes a context menu
     with Copy, Cut and Paste commands.
     """
 
@@ -54,8 +108,8 @@ class DialogWindow(tk.Toplevel):
 
         self.orgLabel = tk.Label(self, text="Название", font=self.font, anchor="w")
         self.keyLabel = tk.Label(self, text="API ключ", font=self.font, anchor="w")
-        self.orgBox = ttk.Combobox(self, font=self.font)
-        self.keyBox = ttk.Combobox(self, font=self.font)
+        self.orgEntry = EntryContext(self, font=self.font)
+        self.keyEntry = EntryContext(self, font=self.font)
         self.dbAppendBtn = tk.Button(self, text="Добавить", font=self.font)
 
         loggerUI.info("Dialog window objects initialized")
@@ -65,9 +119,9 @@ class DialogWindow(tk.Toplevel):
     # Function that places objects initialized earlier
     def widgets_place(self):
         self.orgLabel.place(x=2, y=3, width=80)
-        self.orgBox.place(x=80, y=3, width=300)
+        self.orgEntry.place(x=80, y=3, width=300)
         self.keyLabel.place(x=2, y=26, width=80)
-        self.keyBox.place(x=80, y=26, width=300)
+        self.keyEntry.place(x=80, y=26, width=300)
         self.dbAppendBtn.place(x=2, y=48, width=140)
         loggerUI.info("Initialized objects placed on dialog window successfully")
 
@@ -88,6 +142,7 @@ class UIMain(tk.Tk):
         dialog_window.protocol("WM_DELETE_WINDOW", lambda: dialog_window.dismiss())
         #  Intercept of input on application forms to dialog window
         dialog_window.grab_set()
+
 
     def __init__(self, form_name="Test", form_size="1024x768", font=ui_font):
         super().__init__()
@@ -114,15 +169,19 @@ class UIMain(tk.Tk):
         self.urlLabel = tk.Label(self, text="URL: https://api-ru.iiko.services/api/1/deliveries/by_delivery_date_and_status",
                                   font=self.font, anchor="w")
 
+        self.searchEntry = EntryContext(self, font=self.font)
+        self.searchEntry.bind("<Return>", self.search_res_ev)
+
         #Drop lists (Comboboxes)
-        self.orgBox = ttk.Combobox(self, font=self.font)
-        self.keyBox = ttk.Combobox(self, font=self.font)
-        self.methodBox = ttk.Combobox(self, font=self.font, values=self.__apiMethods)
+        self.orgBox = ComboboxContext(self, font=self.font)
+        self.keyBox = ComboboxContext(self, font=self.font)
+        self.methodBox = ttk.Combobox(self, font=self.font, values=self.__apiMethods, state="readonly")
 
         #Buttons
         self.dbAppendBtn = tk.Button(self, text="Добавить в справочник ключ", font=self.font, command=UIMain.create_window)
         bold_font = tkfont.Font(family="Arial", size=12, weight="bold")
         self.sendRequestBtn = tk.Button(self, text="Выполнить", font=bold_font)
+        self.searchBtn = tk.Button(self, text="Найти", font=self.font, command=self.search_btn_click)
 
         #Text boxes
         self.jsonRequestBox = TextContext(self, height = 50, font=self.font,
@@ -134,6 +193,38 @@ class UIMain(tk.Tk):
 
         self.widgets_place()
 
+    #Define search function text
+    def search_res(self):
+        self.jsonResponseBox.tag_remove('found', '1.0', "end")
+        s = self.searchEntry.get()
+        if s:
+            idx = '1.0'
+            while 1:
+                idx = self.jsonResponseBox.search(s, idx, nocase=True, stopindex="end")
+                if not idx: break
+                lastidx = '%s+%dc' % (idx, len(s))
+                self.jsonResponseBox.tag_add('found', idx, lastidx)
+                idx = lastidx
+                self.jsonResponseBox.see(idx)
+            self.jsonResponseBox.tag_config('found', foreground='red')
+            loggerUI.info(f"Search the text '{self.searchEntry.get()}' complete")
+        self.searchEntry.focus_set()
+
+
+    def search_res_ev(self, event):
+        self.search_res()
+        if self.searchEntry.get():
+            loggerUI.info(f"Key 'Enter' pressed and search started with text '{self.searchEntry.get()}'")
+        else:
+            loggerUI.info("Key 'Enter' pressed and search started with empty text")
+
+
+    def search_btn_click(self):
+        self.search_res()
+        if self.searchEntry.get():
+            loggerUI.info(f"Button 'Найти' pressed and search started with text '{self.searchEntry.get()}'")
+        else:
+            loggerUI.info("Button 'Найти' pressed and search started with empty text")
 
         #Function that places objects initialized earlier
     def widgets_place(self):
@@ -152,7 +243,10 @@ class UIMain(tk.Tk):
         self.jsonTipsLabel.place(relx=0.37, y=115, width=121)
         self.jsonStatusLabel.place(relx=0.7, y=3, relwidth=0.3, height=55)
         self.jsonResponseLabel.place(relx=0.7, y=60, relwidth=0.3)
-        self.jsonResponseBox.place(relx=0.62, y=80, relwidth=0.378, relheight=0.86)
+        self.jsonResponseBox.place(relx=0.62, y=105, relwidth=0.378, relheight=0.83)
+        self.searchEntry.place(relx=0.62, y=85, relwidth=0.3)
+        self.searchBtn.place(relx=0.92, y=85, width=40, height=20)
+
         loggerUI.info("Initialized objects placed on main window successfully")
 
     def __del__(self):
