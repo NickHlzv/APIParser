@@ -143,6 +143,7 @@ class UIMain(tk.Tk):
         dialog_window.grab_set()
 
 
+
     def __init__(self, form_name="Test", form_size="1024x768", font=ui_font):
         super().__init__()
 
@@ -156,6 +157,17 @@ class UIMain(tk.Tk):
                               "Типы заказов (/api/1/deliveries/order_types)", "Доставки по дате (/deliveries/by_delivery_date_and_status)",
                               "Меню/Выгрузка меню (/1/nomenclature)", "Внешнее меню (/2/menu)", "Выгрузка из внешнего меню (/2/menu/by_id)")
 
+        self.__url_dict = { self.__apiMethods[0]:"https://api-ru.iiko.services/api/1/organizations",
+                            self.__apiMethods[1]: "https://api-ru.iiko.services/api/1/terminal_groups",
+                            self.__apiMethods[2]: "https://api-ru.iiko.services/api/1/payment_types",
+                            self.__apiMethods[3]: "https://api-ru.iiko.services/api/1/deliveries/order_types",
+                            self.__apiMethods[4]: "https://api-ru.iiko.services/api/1/deliveries/by_delivery_date_and_status",
+                            self.__apiMethods[5]: "https://api-ru.iiko.services/api/1/nomenclature",
+                            self.__apiMethods[6]: "https://api-ru.iiko.services/api/2/menu",
+                            self.__apiMethods[7]: "https://api-ru.iiko.services/api/2/menu/by_id",
+        }
+
+
         #   Initialize graphic objects of main window
         #   Labels (heads of interactive objects)
         self.orgLabel = tk.Label(self, text="Название", font=self.font, anchor="w")
@@ -165,7 +177,7 @@ class UIMain(tk.Tk):
         self.jsonTipsLabel = tk.Label(self, text="Подсказки по JSON", font=self.font, anchor="w")
         self.jsonStatusLabel = tk.Label(self, text="Response Status", font=("Arial", 14), fg="green", anchor="e")
         self.jsonResponseLabel = tk.Label(self, text="JSON Ответ", font=self.font, anchor="e")
-        self.urlLabel = tk.Label(self, text="URL: https://api-ru.iiko.services/api/1/deliveries/by_delivery_date_and_status",
+        self.urlLabel = tk.Label(self, text="URL: https://api-ru.iiko.services/api/1/organizations",
                                   font=self.font, anchor="w")
 
         self.searchEntry = EntryContext(self, font=self.font)
@@ -175,6 +187,10 @@ class UIMain(tk.Tk):
         self.orgBox = ComboboxContext(self, font=self.font)
         self.keyBox = ComboboxContext(self, font=self.font)
         self.methodBox = ttk.Combobox(self, font=self.font, values=self.__apiMethods, state="readonly")
+        #Set default value for method Combobox
+        self.methodBox.set(self.__apiMethods[0])
+        # Set bind value selection methodCombobox on URL label
+        self.methodBox.bind("<<ComboboxSelected>>", self.selected)
 
         #Buttons
         self.dbAppendBtn = tk.Button(self, text="Добавить в справочник ключ", font=self.font, command=UIMain.create_window)
@@ -195,21 +211,26 @@ class UIMain(tk.Tk):
     #Define search function text
     def search_res(self):
         self.jsonResponseBox.tag_remove('found', '1.0', "end")
-        s = self.searchEntry.get()
-        if s:
+        src = self.searchEntry.get()
+        if src:
             idx = '1.0'
             while 1:
-                idx = self.jsonResponseBox.search(s, idx, nocase=True, stopindex="end")
+                idx = self.jsonResponseBox.search(src, idx, nocase=True, stopindex="end")
                 if not idx: break
-                lastidx = '%s+%dc' % (idx, len(s))
-                self.jsonResponseBox.tag_add('found', idx, lastidx)
-                idx = lastidx
+                last_idx = '%s+%dc' % (idx, len(src))
+                self.jsonResponseBox.tag_add('found', idx, last_idx)
+                idx = last_idx
                 self.jsonResponseBox.see(idx)
             self.jsonResponseBox.tag_config('found', foreground='red')
             loggerUI.info(f"Search the text '{self.searchEntry.get()}' complete")
         self.searchEntry.focus_set()
 
+    # Select function for binding on selection Combobox
+    def selected(self, event):
+        selection = self.methodBox.get()
+        self.urlLabel["text"] = self.__url_dict[selection]
 
+    # Search function for binding event and logging
     def search_res_ev(self, event):
         self.search_res()
         if self.searchEntry.get():
@@ -217,7 +238,7 @@ class UIMain(tk.Tk):
         else:
             loggerUI.info("Key 'Enter' pressed and search started with empty text")
 
-
+    # Search function for without binding event and logging
     def search_btn_click(self):
         self.search_res()
         if self.searchEntry.get():
@@ -225,7 +246,7 @@ class UIMain(tk.Tk):
         else:
             loggerUI.info("Button 'Найти' pressed and search started with empty text")
 
-        #Function that places objects initialized earlier
+    # Function that places objects initialized earlier
     def widgets_place(self):
         self.orgLabel.place(x=2, y=3, width=80)
         self.orgBox.place(x=80, y=3, relwidth=0.4)
