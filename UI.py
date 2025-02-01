@@ -1,7 +1,9 @@
+import json
 from tkinter import font as tkfont
 import tkinter as tk
 import tkinter.ttk as ttk
 import logging
+from API import APITrnRequest
 
 #  Set logging module UI.py
 
@@ -143,7 +145,6 @@ class UIMain(tk.Tk):
         dialog_window.grab_set()
 
 
-
     def __init__(self, form_name="Test", form_size="1024x768", font=ui_font):
         super().__init__()
 
@@ -195,7 +196,7 @@ class UIMain(tk.Tk):
         #Buttons
         self.dbAppendBtn = tk.Button(self, text="Добавить в справочник ключ", font=self.font, command=UIMain.create_window)
         bold_font = tkfont.Font(family="Arial", size=12, weight="bold")
-        self.sendRequestBtn = tk.Button(self, text="Выполнить", font=bold_font)
+        self.sendRequestBtn = tk.Button(self, text="Выполнить", font=bold_font, command=self.send_request)
         self.searchBtn = tk.Button(self, text="Найти", font=self.font, command=self.search_btn_click)
 
         #Text boxes
@@ -268,6 +269,22 @@ class UIMain(tk.Tk):
         self.searchBtn.place(relx=0.92, y=85, width=40, height=20)
 
         loggerUI.info("Initialized objects placed on main window successfully")
+
+    def send_request(self):
+        self.jsonResponseBox.delete("1.0", "end")
+        apikey = self.keyBox.get()
+        if apikey or len(apikey) < 10:
+            self.jsonResponseBox.insert("0.0", "Please enter a valid API key")
+        url = self.__url_dict[self.methodBox.get()]
+        data = self.jsonRequestBox.get("1.0", "end")
+        request = APITrnRequest(apikey, url=url, data=data)
+        response_code, response = request.post()
+        self.jsonStatusLabel["text"] = f"Status: {response_code}"
+        if response_code == 200:
+            self.jsonStatusLabel["fg"] = "green"
+        else:
+            self.jsonStatusLabel["fg"] = "red"
+        self.jsonResponseBox.insert("0.0", response)
 
     def __del__(self):
         loggerUI.info("Main window closed and application stopped")
