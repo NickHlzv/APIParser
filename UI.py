@@ -228,7 +228,7 @@ class UIMain(tk.Tk):
     # Select function for binding on selection Combobox
     def selected(self, event):
         selection = self.methodBox.get()
-        self.urlLabel["text"] = self.__url_dict[selection]
+        self.urlLabel["text"] = f"URL: {self.__url_dict[selection]}"
 
     # Search function for binding event and logging
     def search_res_ev(self, event):
