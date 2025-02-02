@@ -203,7 +203,7 @@ class UIMain(tk.Tk):
         self.jsonRequestBox = TextContext(self, height = 50, font=self.font,
                                             wrap="none")
         self.jsonTipsBox = TextContext(self, width=30, height = 30, font=self.font, wrap="none", state="disabled")
-        self.jsonResponseBox = TextContext(self, width=30, height = 30, font=self.font, wrap="none")
+        self.jsonResponseBox = TextContext(self, width=30, height = 30, font=self.font, wrap="none", state="disabled")
 
         loggerUI.info("Main window objects initialized")
 
@@ -271,20 +271,32 @@ class UIMain(tk.Tk):
         loggerUI.info("Initialized objects placed on main window successfully")
 
     def send_request(self):
+        self.jsonResponseBox["state"] = "normal"
+        loggerUI.info("Click button 'Выполнить'")
         self.jsonResponseBox.delete("1.0", "end")
         apikey = self.keyBox.get()
-        if apikey or len(apikey) < 10:
+        loggerUI.info(f"got APIkey from box: {apikey}")
+        if not apikey or len(apikey) < 8:
             self.jsonResponseBox.insert("0.0", "Please enter a valid API key")
-        url = self.__url_dict[self.methodBox.get()]
-        data = self.jsonRequestBox.get("1.0", "end")
-        request = APITrnRequest(apikey, url=url, data=data)
-        response_code, response = request.post()
-        self.jsonStatusLabel["text"] = f"Status: {response_code}"
-        if response_code == 200:
-            self.jsonStatusLabel["fg"] = "green"
-        else:
             self.jsonStatusLabel["fg"] = "red"
-        self.jsonResponseBox.insert("0.0", response)
+            self.jsonStatusLabel["text"] = "Value error"
+        else:
+            url = self.__url_dict[self.methodBox.get()]
+            if not self.jsonRequestBox.compare("end-1c", "==", "1.0"):
+                data = self.jsonRequestBox.get("1.0", "end")
+            else:
+                data = "{}"
+            loggerUI.info(f"got json data from json box: {data} and try sending request")
+            request = APITrnRequest(apikey, url=url, data=data)
+            response_code, response = request.post()
+            self.jsonStatusLabel["text"] = f"Status: {response_code}"
+            if response_code == 200:
+                self.jsonStatusLabel["fg"] = "green"
+            else:
+                self.jsonStatusLabel["fg"] = "red"
+
+            self.jsonResponseBox.insert("0.0", response)
+        self.jsonResponseBox["state"] = "disabled"
 
     def __del__(self):
         loggerUI.info("Main window closed and application stopped")

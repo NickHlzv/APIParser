@@ -19,41 +19,46 @@ defaultHeaders = {
 
 
 class APITrnRequest:
+    GlobalApikey = None
     def __init__(self, apikey, url=orgMethodURL, headers=None, data=None):
         if not apikey:
             loggerAPI.exception("Apikey is missing. It's required.")
             raise ValueError("Apikey is missing. It's required.")
         self.URL = url
         self.headers = defaultHeaders if not headers else headers
-        self.data = {} if not data else data
+        self.data = json.dumps({} if not data else data, indent=4, ensure_ascii=False)
         self.apiKey = apikey
+        self.authorized = False
+        if APITrnRequest.GlobalApikey != self.apiKey:
+            APITrnRequest.GlobalApikey = self.apiKey
+            self.authorized = self.authorize()
+
 
 
     def authorize(self):
         auth_url = "https://api-ru.iiko.services/api/1/access_token"
         auth_headers = {"Content-Type": "application/json"}
-        auth_json = {"apiLogin": self.apiKey}
+        auth_json = json.dumps({"apiLogin": self.apiKey})
         try:
             auth_request = requests.post(auth_url, headers=auth_headers, data=auth_json)
-            auth_request.raise_for_status()
         except requests.exceptions.HTTPError as err_h:
             loggerAPI.exception(f"Auth http error: {err_h}\n{auth_url}\n{auth_json}")
-            return f"Auth Http Error: {err_h}\n"
+            return False
         except requests.exceptions.RequestException as expt:
             loggerAPI.exception(f"Auth error: {expt}\n{auth_url}\n{auth_json}")
-            return f"Auth error: {expt}\n"
+            return False
         else:
             if auth_request.status_code:
                 if auth_request.status_code == 200:
                     self.headers["Authorization"] = f"Bearer {auth_request.json()["token"]}"
                     loggerAPI.info(f"Apikey: {self.apiKey} has got auth token:\n{self.headers["Authorization"]}")
-                    return f"{auth_request.json()["token"]}\n"
+                    return True
                 else:
                     loggerAPI.error(f"Auth error:\n{auth_request.json()}")
-                    return f"Auth error: {auth_request.json()}\n"
+                    return False
             else:
                 loggerAPI.error("Unexpected error (authorization method complete but hasn't any result)")
-                return "Unexpected error (authorization method complete but hasn't any result)\n"
+                return False
 
 
     def post(self):
@@ -62,7 +67,6 @@ class APITrnRequest:
             self.authorize()
         try:
             post_request = requests.post(self.URL, headers=self.headers, data=self.data)
-            post_request.raise_for_status()
             loggerAPI.info(f"Request\n{self.URL}\nJSON\n{self.data}")
         except requests.exceptions.HTTPError as err_h:
             loggerAPI.exception(f"Request Http Error: {err_h}\n{self.URL}\nJSON\n{self.data}")
@@ -73,16 +77,22 @@ class APITrnRequest:
         else:
             if post_request.status_code:
                 if post_request.status_code == 200:
-                    loggerAPI.info(f"Success request. Response:\n{post_request.json()}")
-                    return post_request.status_code, post_request.json()
+                    response = json.dumps(post_request.json(), indent=4, ensure_ascii=False)
+                    loggerAPI.info(f"Success request. Response:\n{response}")
+                    return post_request.status_code, response
                 if post_request.status_code == 401:
-                    loggerAPI.info(f"Bearer token {self.headers['Authorization']} is missing or expired. Try to authorize and will send request again."
+                    loggerAPI.info(f"Bearer token is missing or expired. Try to authorize and will send request again."
                                    f" (Unauthorized post request)")
-                    self.authorize()
-                    self.post()
+                    self.authorized = self.authorize()
+                    if self.authorized:
+                        self.post()
+                    else:
+                        loggerAPI.error("Authorization failed with. Invalid auth request")
+                        return "Error", "Authorization failed with. Invalid auth request"
                 else:
-                    loggerAPI.error(f"Response code:{post_request.status_code}\n{post_request.json()}")
-                    return post_request.status_code, post_request.json()
+                    response = json.dumps(post_request.json(), indent=4, ensure_ascii=False)
+                    loggerAPI.error(f"Response code:{post_request.status_code}\n{response}")
+                    return post_request.status_code, response
             else:
                 loggerAPI.error("Unexpected error (request complete but hasn't any result)")
                 return "Error", "Unexpected error\n"
