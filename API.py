@@ -25,7 +25,7 @@ class APITrnRequest:
             loggerAPI.exception("Apikey is missing. It's required.")
             raise ValueError("Apikey is missing. It's required.")
         self.URL = url
-        self.headers = defaultHeaders if not headers else headers
+        self.headers = defaultHeaders.copy() if not headers else headers
         self.data = json.dumps({} if not data else data, indent=4, ensure_ascii=False)
         self.apiKey = apikey
         self.authorized = False
@@ -54,7 +54,8 @@ class APITrnRequest:
                     loggerAPI.info(f"Apikey: {self.apiKey} has got auth token:\n{self.headers["Authorization"]}")
                     return True
                 else:
-                    loggerAPI.error(f"Auth error:\n{auth_request.json()}")
+                    loggerAPI.error(f"Auth error:\n{auth_request.json()}, headers and auth session cleared")
+                    self.headers = defaultHeaders.copy()
                     return False
             else:
                 loggerAPI.error("Unexpected error (authorization method complete but hasn't any result)")
