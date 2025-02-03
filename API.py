@@ -88,8 +88,8 @@ class APITrnRequest:
                     if self.authorized:
                         self.post()
                     else:
-                        loggerAPI.error("Authorization failed with. Invalid auth request")
-                        return "Error", "Authorization failed with. Invalid auth request"
+                        loggerAPI.error("Authorization failed. Invalid auth request")
+                        return "Error", "Authorization failed. Invalid auth request"
                 else:
                     response = json.dumps(post_request.json(), indent=4, ensure_ascii=False)
                     loggerAPI.error(f"Response code:{post_request.status_code}\n{response}")
