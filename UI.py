@@ -278,6 +278,7 @@ class UIMain(tk.Tk):
         loggerUI.info(f"got APIkey from box: {apikey}")
         if not apikey or len(apikey) < 8:
             self.jsonResponseBox.insert("0.0", "Please enter a valid API key")
+            loggerUI.info(f"Invalid API key")
             self.jsonStatusLabel["fg"] = "red"
             self.jsonStatusLabel["text"] = "Value error"
         else:
@@ -286,7 +287,7 @@ class UIMain(tk.Tk):
                 data = self.jsonRequestBox.get("1.0", "end")
             else:
                 data = "{}"
-            loggerUI.info(f"got json data from json box: {data} and try sending request")
+            loggerUI.info(f"got json data from json box: \n{data} and try sending request")
             request = APITrnRequest(apikey, url=url, data=data)
             response_code, response = request.post()
             self.jsonStatusLabel["text"] = f"Status: {response_code}"
