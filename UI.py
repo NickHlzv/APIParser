@@ -1,4 +1,3 @@
-import json
 from tkinter import font as tkfont
 import tkinter as tk
 import tkinter.ttk as ttk
