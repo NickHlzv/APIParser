@@ -1,5 +1,6 @@
 import requests
 from UI import *
 
-root = UIMain()
-root.mainloop()
+if __name__ == "__main__":
+    root = UIMain()
+    root.mainloop()

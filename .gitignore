@@ -3,3 +3,8 @@
 /.gitignore
 /UI.log
 /API.log
+/output/
+/dist/
+/build/
+/images.ico
+/config.json
