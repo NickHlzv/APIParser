@@ -102,6 +102,7 @@ class DialogWindow(tk.Toplevel):
         # Init objects for dialog window
         super().__init__()
         self.font = font
+        self.iconbitmap("images.ico")
         self.title(form_name)
         self.resizable(False, False)
         self.geometry(form_size)
@@ -144,12 +145,12 @@ class UIMain(tk.Tk):
         dialog_window.grab_set()
 
 
-    def __init__(self, form_name="Test", form_size="1024x768", font=ui_font):
+    def __init__(self, form_name="API Parser", form_size="1024x768", font=ui_font):
         super().__init__()
 
         #  Initialize attributes of main window
         self.title(form_name)
-        #self.resizable(False, False)
+        self.iconbitmap("images.ico")
         self.geometry(form_size)
         self.font = font
         self.option_add('*TCombobox*Listbox.font', self.font)

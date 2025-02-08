@@ -39,9 +39,11 @@ class MongoDB(pymongo.MongoClient):
             self.keysCollection = self.parserDB["apikeys"]
             self.jsonsCollection = self.parserDB["jsons"]
             self.hintsCollection = self.parserDB["hints"]
-            self.status = f"Connected to MongoDB successfully. Config{cfg}"
+            self.status = f"Connected to MongoDB successfully. Config: {cfg}"
+            loggerDB.info(self.status)
         except pymongo.errors.AutoReconnect:  # pragma: no cover
-                loggerDB.exception('Connection to MongoDB failed, retrying')
+                self.status = "Connection to MongoDB failed. Try to reconnect"
+                loggerDB.exception(self.status)
                 time.sleep(5)
 
     def key_is_exists(self, apikey):
