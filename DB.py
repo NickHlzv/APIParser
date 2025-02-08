@@ -72,7 +72,7 @@ class MongoDB(pymongo.MongoClient):
 
     def load_keys(self):
         keys_dict = {}
-        for doc in self.keysCollection.find():
+        for doc in self.keysCollection.find().sort("name", pymongo.ASCENDING):
             keys_dict[doc["key"]] = doc["name"]
         loggerDB.info(f"API keys loaded from DB\n: {keys_dict}")
         return keys_dict
