@@ -49,10 +49,10 @@ class MongoDB(pymongo.MongoClient):
     def key_is_exists(self, apikey):
         return bool(self.keysCollection.find_one({"key": apikey}))
 
-    def jsons_is_exists(self, apikey, url):
+    def json_is_exists(self, apikey, url):
         return bool(self.jsonCollection.find_one({"key": apikey, "url": url}))
 
-    def hints_is_exists(self, apikey, url):
+    def hint_is_exists(self, apikey, url):
         return bool(self.hintsCollection.find_one({"key": apikey, "url": url}))
 
     def insert_key(self, name, key):
@@ -80,7 +80,7 @@ class MongoDB(pymongo.MongoClient):
     def insert_json(self, apikey, url, json_data):
         try:
             json_converted = json.dumps(json_data, ensure_ascii=False, indent=4)
-            if self.jsons_is_exists(apikey, url):
+            if self.json_is_exists(apikey, url):
                 self.jsonsCollection.update_one({"key": apikey, "url": url}, {'$set': {"json": json_converted}})
                 loggerDB.info(f"Updated json for {apikey} | {url} into DB data\n {json_converted}")
             else:
@@ -90,13 +90,58 @@ class MongoDB(pymongo.MongoClient):
              loggerDB.error("Failed to decode json data, data not saved into DB")
 
     def load_json(self, apikey, url):
-        if self.jsons_is_exists(apikey, url):
+        if self.json_is_exists(apikey, url):
             json_output = self.jsonsCollection.find_one({"key": apikey, "url": url})["json"]
             loggerDB.info(f"json was loaded from DB for {apikey} | {url} data\n {json_output}")
             return json_output
         else:
-            loggerDB.info(f"Wasn't find json data, load empty json body")
-            return "{\n\n}"
+            loggerDB.info(f"Wasn't find json data, load standard empty json body")
+            return '{\n"organizationIds": [\n\n]\n}'
+
+    def load_hint(self, apikey, url):
+        if self.hint_is_exists(apikey, url):
+            hint_output = self.hintsCollection.find_one({"key": apikey, "url": url})["hint"]
+            loggerDB.info(f"Hint was loaded from DB for {apikey} | {url} data\n {hint_output}")
+            return hint_output
+        else:
+            loggerDB.info(f"Wasn't find hint data, nothing to load")
+            return "Подсказки появятся, когда будете делать запросы. \n Они будут создаваться из запросов и сохраняться в базу"
+
+    def insert_hint(self, apikey, url):
+        __hintUrl = url
+        __organizationsHint = ("Выполните пустой запрос. \nМожно использовать дополнительно атрибуты:"
+                               "\n 'returnAdditionalInfo': true - отобразить доп. инфо"
+                               "\n 'includeDisabled': true - показать отключенные организации")
+        __extMenuHint = "Выполните пустой запрос"
+        __extNomenclatureDefaultHint = "Выполните запрос внешнее меню (/2/menu)"
+        __defaultHint = "Выполните запрос организации"
+        if __hintUrl == "https://api-ru.iiko.services/api/1/organizations":
+            if not self.hint_is_exists(apikey, url):
+                self.hintsCollection.insert_one({"key": apikey, "url": url, "hint": __organizationsHint})
+                loggerDB.info(f"Default Organization Hint for {apikey} and {url} was saved into DB")
+        elif __hintUrl == "https://api-ru.iiko.services/api/2/menu":
+            if not self.hint_is_exists(apikey, url):
+                self.hintsCollection.insert_one({"key": apikey, "url": url, "hint": __extMenuHint})
+                loggerDB.info(f"Default extMenuHint for {apikey} and {url} was saved into DB")
+        elif __hintUrl == "https://api-ru.iiko.services/api/2/menu/by_id":
+            if not self.hint_is_exists(apikey, url):
+                if self.json_is_exists(apikey, "https://api-ru.iiko.services/api/2/menu"):
+                    json_hint_menu_v2_url = self.load_json(apikey, "https://api-ru.iiko.services/api/2/menu")
+                    self.hintsCollection.insert_one({"key": apikey, "url": url, "hint":json_hint_menu_v2_url})
+                    loggerDB.info(f"Json Hint nomenclature v2 menu for {apikey} and {url} was saved into DB")
+                else:
+                    self.hintsCollection.insert_one({"key": apikey, "url": url, "hint": __extNomenclatureDefaultHint})
+                    loggerDB.info(f"Default nomenclature v2 menu hint for {apikey} and {url} was saved into DB")
+            else:
+                hint = self.load_hint(apikey, url)
+                if hint == __extNomenclatureDefaultHint:
+                    if self.json_is_exists(apikey, "https://api-ru.iiko.services/api/2/menu"):
+                        json_hint_menu_v2_url = self.load_json(apikey, "https://api-ru.iiko.services/api/2/menu")
+                        self.hintsCollection.insert_one({"key": apikey, "url": url, "hint": json_hint_menu_v2_url})
+
+
+
+
 
 
 

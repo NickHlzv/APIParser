@@ -15,12 +15,14 @@ loggerUI.addHandler(handlerUI)
 #  Set general UI font
 ui_font = ("Arial", 10)
 
+
 #  Redefine new class of Textbox with simple RightClick menu from standard Textbox
 class TextContext(tk.Text):
     """
     Extended text widget that includes a context menu
     with Copy, Cut and Paste commands.
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.menu = tk.Menu(self, tearoff=False)
@@ -40,6 +42,7 @@ class TextContext(tk.Text):
 
     def popup_paste(self):
         self.event_generate("<<Paste>>")
+
 
 #  Redefine new class of Entry with simple RightClick menu from standard Textbox
 class EntryContext(tk.Entry):
@@ -67,6 +70,7 @@ class EntryContext(tk.Entry):
 
     def popup_paste(self):
         self.event_generate("<<Paste>>")
+
 
 #   Redefine new class of Combobox with simple RightClick menu from standard Textbox
 class ComboboxContext(ttk.Combobox):
@@ -131,6 +135,7 @@ class DialogWindow(tk.Toplevel):
         self.destroy()
         loggerUI.info("Dialog window closed")
 
+
 #   Define main window class
 
 class UIMain(tk.Tk):
@@ -144,7 +149,6 @@ class UIMain(tk.Tk):
         #  Intercept of input on application forms to dialog window
         dialog_window.grab_set()
 
-
     def __init__(self, form_name="API Parser", form_size="1024x768", font=ui_font):
         super().__init__()
 
@@ -154,20 +158,24 @@ class UIMain(tk.Tk):
         self.geometry(form_size)
         self.font = font
         self.option_add('*TCombobox*Listbox.font', self.font)
-        self.__apiMethods = ("Организации (/api/1/organizations)", "Терминалы (/api/1/terminal_groups)", "Типы оплат (/api/1/payment_types)",
-                              "Типы заказов (/api/1/deliveries/order_types)", "Доставки по дате (/deliveries/by_delivery_date_and_status)",
-                              "Меню/Выгрузка меню (/1/nomenclature)", "Внешнее меню (/2/menu)", "Выгрузка из внешнего меню (/2/menu/by_id)")
+        self.__apiMethods = (
+            "Организации (/api/1/organizations)", "Терминалы (/api/1/terminal_groups)",
+            "Типы оплат (/api/1/payment_types)",
+            "Типы заказов (/api/1/deliveries/order_types)",
+            "Доставки по дате (/deliveries/by_delivery_date_and_status)",
+            "Меню/Выгрузка меню (/1/nomenclature)", "Внешнее меню (/2/menu)",
+            "Выгрузка из внешнего меню (/2/menu/by_id)")
 
-        self.__url_dict = { self.__apiMethods[0]:"https://api-ru.iiko.services/api/1/organizations",
-                            self.__apiMethods[1]: "https://api-ru.iiko.services/api/1/terminal_groups",
-                            self.__apiMethods[2]: "https://api-ru.iiko.services/api/1/payment_types",
-                            self.__apiMethods[3]: "https://api-ru.iiko.services/api/1/deliveries/order_types",
-                            self.__apiMethods[4]: "https://api-ru.iiko.services/api/1/deliveries/by_delivery_date_and_status",
-                            self.__apiMethods[5]: "https://api-ru.iiko.services/api/1/nomenclature",
-                            self.__apiMethods[6]: "https://api-ru.iiko.services/api/2/menu",
-                            self.__apiMethods[7]: "https://api-ru.iiko.services/api/2/menu/by_id",
-        }
-
+        self.__url_dict = {self.__apiMethods[0]: "https://api-ru.iiko.services/api/1/organizations",
+                           self.__apiMethods[1]: "https://api-ru.iiko.services/api/1/terminal_groups",
+                           self.__apiMethods[2]: "https://api-ru.iiko.services/api/1/payment_types",
+                           self.__apiMethods[3]: "https://api-ru.iiko.services/api/1/deliveries/order_types",
+                           self.__apiMethods[4]:
+                               "https://api-ru.iiko.services/api/1/deliveries/by_delivery_date_and_status",
+                           self.__apiMethods[5]: "https://api-ru.iiko.services/api/1/nomenclature",
+                           self.__apiMethods[6]: "https://api-ru.iiko.services/api/2/menu",
+                           self.__apiMethods[7]: "https://api-ru.iiko.services/api/2/menu/by_id",
+                           }
 
         #   Initialize graphic objects of main window
         #   Labels (heads of interactive objects)
@@ -179,7 +187,7 @@ class UIMain(tk.Tk):
         self.jsonStatusLabel = tk.Label(self, text="Response Status", font=("Arial", 14), fg="green", anchor="e")
         self.jsonResponseLabel = tk.Label(self, text="JSON Ответ", font=self.font, anchor="e")
         self.urlLabel = tk.Label(self, text="URL: https://api-ru.iiko.services/api/1/organizations",
-                                  font=self.font, anchor="w")
+                                 font=self.font, anchor="w")
 
         self.searchEntry = EntryContext(self, font=self.font)
         self.searchEntry.bind("<Return>", self.search_res_ev)
@@ -194,16 +202,17 @@ class UIMain(tk.Tk):
         self.methodBox.bind("<<ComboboxSelected>>", self.selected)
 
         #Buttons
-        self.dbAppendBtn = tk.Button(self, text="Добавить в справочник ключ", font=self.font, command=UIMain.create_window)
+        self.dbAppendBtn = tk.Button(self, text="Добавить в справочник ключ", font=self.font,
+                                     command=UIMain.create_window)
         bold_font = tkfont.Font(family="Arial", size=12, weight="bold")
         self.sendRequestBtn = tk.Button(self, text="Выполнить", font=bold_font, command=self.send_request)
         self.searchBtn = tk.Button(self, text="Найти", font=self.font, command=self.search_btn_click)
 
         #Text boxes
-        self.jsonRequestBox = TextContext(self, height = 50, font=self.font,
-                                            wrap="none")
-        self.jsonTipsBox = TextContext(self, width=30, height = 30, font=self.font, wrap="none", state="disabled")
-        self.jsonResponseBox = TextContext(self, width=30, height = 30, font=self.font, wrap="none", state="disabled")
+        self.jsonRequestBox = TextContext(self, height=50, font=self.font,
+                                          wrap="none")
+        self.jsonTipsBox = TextContext(self, width=30, height=30, font=self.font, wrap="none", state="disabled")
+        self.jsonResponseBox = TextContext(self, width=30, height=30, font=self.font, wrap="none", state="disabled")
 
         loggerUI.info("Main window objects initialized")
 
@@ -256,7 +265,7 @@ class UIMain(tk.Tk):
         self.methodLabel.place(x=2, y=49, width=80)
         self.methodBox.place(x=80, y=49, relwidth=0.4)
         self.dbAppendBtn.place(x=2, y=71, width=185)
-        self.sendRequestBtn.place(x=187, y=71, width=100, height = 28)
+        self.sendRequestBtn.place(x=187, y=71, width=100, height=28)
         self.urlLabel.place(x=2, y=97, width=450)
         self.jsonRequestLabel.place(x=2, y=115, width=38)
         self.jsonRequestBox.place(x=2, y=135, relwidth=0.37, relheight=0.8)
@@ -277,7 +286,7 @@ class UIMain(tk.Tk):
         apikey = self.keyBox.get()
         loggerUI.info(f"got APIkey from box: {apikey}")
         if not apikey or len(apikey) < 8:
-            self.jsonResponseBox.insert("0.0", "Please enter a valid API key")
+            self.jsonResponseBox.insert("0.0", "Введите валидный API key")
             loggerUI.info(f"Invalid API key")
             self.jsonStatusLabel["fg"] = "red"
             self.jsonStatusLabel["text"] = "Value error"
@@ -301,6 +310,3 @@ class UIMain(tk.Tk):
 
     def __del__(self):
         loggerUI.info("Main window closed and application stopped")
-
-
-
