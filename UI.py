@@ -135,6 +135,9 @@ class DialogWindow(tk.Toplevel):
         self.destroy()
         loggerUI.info("Dialog window closed")
 
+#    def insert_keys(self):
+
+
 
 #   Define main window class
 
