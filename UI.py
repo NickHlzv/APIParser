@@ -3,6 +3,8 @@ import tkinter as tk
 import tkinter.ttk as ttk
 import logging
 from API import APITrnRequest
+from DB import *
+import pymongo
 
 #  Set logging module UI.py
 
@@ -103,7 +105,7 @@ class ComboboxContext(ttk.Combobox):
 #   Define class for dialog window that adds data to DB
 class DialogWindow(tk.Toplevel):
     def __init__(self, form_name="Добавить API ключ", form_size="400x90", font=ui_font):
-        # Init objects for dialog window
+        # Init params and objects for dialog window
         super().__init__()
         self.font = font
         self.iconbitmap("images.ico")
@@ -115,7 +117,8 @@ class DialogWindow(tk.Toplevel):
         self.keyLabel = tk.Label(self, text="API ключ", font=self.font, anchor="w")
         self.orgEntry = EntryContext(self, font=self.font)
         self.keyEntry = EntryContext(self, font=self.font)
-        self.dbAppendBtn = tk.Button(self, text="Добавить", font=self.font)
+        self.dbAppendBtn = tk.Button(self, text="Добавить", font=self.font, command=self.insert_keys)
+        self.statusLabel = tk.Label(self, text="Статус", font=self.font, anchor="w", fg="green")
 
         loggerUI.info("Dialog window objects initialized")
 
@@ -127,16 +130,52 @@ class DialogWindow(tk.Toplevel):
         self.orgEntry.place(x=80, y=3, width=300)
         self.keyLabel.place(x=2, y=26, width=80)
         self.keyEntry.place(x=80, y=26, width=300)
-        self.dbAppendBtn.place(x=2, y=48, width=140)
+        self.dbAppendBtn.place(x=2, y=70, width=140)
+        self.statusLabel.place(x=2, y=48, width = 380)
         loggerUI.info("Initialized objects placed on dialog window successfully")
 
+    # define closing dialog window
     def dismiss(self):
         self.grab_release()
         self.destroy()
         loggerUI.info("Dialog window closed")
 
-#    def insert_keys(self):
+    # define function for button inserting keys into DB
+    def insert_keys(self):
+        apikey = self.keyEntry.get()
+        api_name = self.orgEntry.get()
 
+        if not apikey or len(apikey) < 8:
+            if not api_name or len(api_name) < 5:
+                loggerUI.info(f"Invalid API key and name")
+                self.statusLabel["fg"] = "red"
+                self.statusLabel["fg"] = "Введите валидный Api key и название больше 5 или более символов"
+            else:
+                loggerUI.info(f"Invalid API key, name is valid")
+                self.statusLabel["fg"] = "red"
+                self.statusLabel["fg"] = "Введите валидный Api key"
+        else:
+            if not api_name or len(api_name) < 5:
+                loggerUI.info(f"API key is valid but name isn't valid")
+                self.statusLabel["fg"] = "red"
+                self.statusLabel["fg"] = "Введите название больше 5 символов"
+            else:
+                status = False
+                loggerUI.info(f"API key and name validated, try to save into DB")
+                try:
+                    db_client = MongoDB()
+                    status, self.statusLabel["text"] = db_client.insert_key(api_name, apikey)
+                    if status:
+                        self.statusLabel["fg"] = "green"
+                        loggerUI.info(f"Successfully inserted/updated API key into DB")
+                    else:
+                        self.statusLabel["fg"] = "red"
+                        loggerUI.error(f"Failed to insert/update API key into DB, (does API key correct and exists?)")
+                    db_client.close()
+                except pymongo.errors.AutoReconnect:
+                    self.statusLabel["fg"] = "red"
+                    self.statusLabel["Text"] = "Не могу подключиться к базе, пытаюсь переподключиться"
+                    loggerUI.exception("Failed connecting to DB. App can't work correctly")
 
 
 #   Define main window class
@@ -161,6 +200,8 @@ class UIMain(tk.Tk):
         self.geometry(form_size)
         self.font = font
         self.option_add('*TCombobox*Listbox.font', self.font)
+
+        # initialize static menu data
         self.__apiMethods = (
             "Организации (/api/1/organizations)", "Терминалы (/api/1/terminal_groups)",
             "Типы оплат (/api/1/payment_types)",

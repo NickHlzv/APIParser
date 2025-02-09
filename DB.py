@@ -59,16 +59,16 @@ class MongoDB(pymongo.MongoClient):
         if self.key_is_exists(key):
             self.keysCollection.update_one({"key": key},{"$set":{"name": name}})
             loggerDB.info(f"Updated name {name} on key {key}")
-            return "Ключ существует. Данные обновлены"
+            return True, "Ключ существует. Данные обновлены"
         else:
             test_request: APITrnRequest = APITrnRequest(key)
             if test_request.authorize():
                 self.keysCollection.insert_one({"name": name, "key": key})
                 loggerDB.info(f"API authorize is ok, and key:{key} was saved with name {name}")
-                return "Ключ добавлен"
+                return True, "Ключ добавлен"
             else:
                 loggerDB.error(f"API authorize is failed, key:{key} was not inserted")
-                return "Ключ не авторизовался и не добавлен"
+                return False, "Ключ не авторизовался и не добавлен"
 
     def load_keys(self):
         keys_dict = {}
