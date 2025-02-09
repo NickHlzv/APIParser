@@ -18,20 +18,23 @@ loggerDB.addHandler(handlerDB)
 
 # Init start DB connection data
 cfgCreation = False
+loadCfg = False
 try:
     cfg = json.load(open("config.json", "r"))
+    loadCfg = True
     loggerDB.info(f"Config loaded: {cfg}")
 except FileNotFoundError:
     with open("config.json", "w") as file:
         loggerDB.error(f"Config file not found. Trying to create it.")
         json.dump({"DBSrvConnection": "mongodb://localhost:27017/"}, file)
         cfgCreation = True
-        if cfgCreation:
-            cfg = json.load(open("config.json", "r"))
-            loggerDB.info(f"Config loaded: {cfg}")
-        else:
-            cfg = {"DBSrvConnection": "mongodb://localhost:27017/"}
-            loggerDB.info(f"Can't create config file. Use default connection on mongodb://localhost:27017/")
+
+if cfgCreation and not loadCfg:
+    cfg = json.load(open("config.json", "r"))
+    loggerDB.info(f"Config loaded: {cfg}")
+elif not cfgCreation and not loadCfg:
+    cfg = {"DBSrvConnection": "mongodb://localhost:27017/"}
+    loggerDB.info(f"Can't create config file. Use default connection on mongodb://localhost:27017/")
 
 
 class MongoDB(pymongo.MongoClient):
