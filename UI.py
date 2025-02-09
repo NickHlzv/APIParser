@@ -440,7 +440,9 @@ class UIMain(tk.Tk):
             else:
                 self.jsonStatusLabel["fg"] = "red"
             self.jsonResponseBox.insert("0.0", response)
+            loggerUI.info("Request compeleted and set on text box")
             self.insert_json_and_hint(apikey, url)
+            loggerUI.info("Data on form refreshed after request")
         self.jsonResponseBox["state"] = "disabled"
 
 
