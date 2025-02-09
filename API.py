@@ -26,7 +26,7 @@ class APITrnRequest:
             raise ValueError("Apikey is missing. It's required.")
         self.URL = url
         self.headers = defaultHeaders.copy() if not headers else headers
-        self.data = json.dumps({} if not data else data, indent=4, ensure_ascii=False)
+        self.data = json.dumps({} if not data else data)
         self.apiKey = apikey
         self.authorized = False
         if APITrnRequest.GlobalApikey != self.apiKey:
@@ -45,7 +45,7 @@ class APITrnRequest:
             loggerAPI.exception(f"Auth http error: {err_h}\n{auth_url}\n{auth_json}")
             return False
         except requests.exceptions.RequestException as expt:
-            loggerAPI.exception(f"Auth error: {expt}\n{auth_url}\n{auth_json}")
+            loggerAPI.exception(f"Auth error: {expt}\n{auth_url}\n{json.loads(auth_json)}")
             return False
         else:
             if auth_request.status_code:
@@ -68,7 +68,7 @@ class APITrnRequest:
             self.authorize()
         try:
             post_request = requests.post(self.URL, headers=self.headers, data=self.data)
-            loggerAPI.info(f"Request\n{self.URL}\nJSON\n{self.data}")
+            loggerAPI.info(f"Request\n{self.URL}\nJSON\n{json.loads(self.data)}")
         except requests.exceptions.HTTPError as err_h:
             loggerAPI.exception(f"Request Http Error: {err_h}\n{self.URL}\nJSON\n{self.data}")
             return "Error", f"Http Error: {err_h}"

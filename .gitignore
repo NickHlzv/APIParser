@@ -6,5 +6,8 @@
 /output/
 /dist/
 /build/
-/images.ico
+/logo.ico
 /config.json
+/DB.log
+/refresh.png
+/search.png

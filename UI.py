@@ -104,11 +104,11 @@ class ComboboxContext(ttk.Combobox):
 
 #   Define class for dialog window that adds data to DB
 class DialogWindow(tk.Toplevel):
-    def __init__(self, form_name="Добавить API ключ", form_size="400x90", font=ui_font):
+    def __init__(self, form_name="Добавить API ключ", form_size="400x100", font=ui_font):
         # Init params and objects for dialog window
         super().__init__()
         self.font = font
-        self.iconbitmap("images.ico")
+        self.iconbitmap("logo.ico")
         self.title(form_name)
         self.resizable(False, False)
         self.geometry(form_size)
@@ -149,16 +149,16 @@ class DialogWindow(tk.Toplevel):
             if not api_name or len(api_name) < 5:
                 loggerUI.info(f"Invalid API key and name")
                 self.statusLabel["fg"] = "red"
-                self.statusLabel["fg"] = "Введите валидный Api key и название больше 5 или более символов"
+                self.statusLabel["text"] = "Введите валидный Api key и название больше 4 символов"
             else:
                 loggerUI.info(f"Invalid API key, name is valid")
                 self.statusLabel["fg"] = "red"
-                self.statusLabel["fg"] = "Введите валидный Api key"
+                self.statusLabel["text"] = "Введите валидный Api key"
         else:
             if not api_name or len(api_name) < 5:
                 loggerUI.info(f"API key is valid but name isn't valid")
                 self.statusLabel["fg"] = "red"
-                self.statusLabel["fg"] = "Введите название больше 5 символов"
+                self.statusLabel["text"] = "Введите название больше 5 символов"
             else:
                 status = False
                 loggerUI.info(f"API key and name validated, try to save into DB")
@@ -174,7 +174,7 @@ class DialogWindow(tk.Toplevel):
                     db_client.close()
                 except pymongo.errors.AutoReconnect:
                     self.statusLabel["fg"] = "red"
-                    self.statusLabel["Text"] = "Не могу подключиться к базе, пытаюсь переподключиться"
+                    self.statusLabel["Text"] = "Не могу подключиться к базе, переподключаюсь"
                     loggerUI.exception("Failed connecting to DB. App can't work correctly")
 
 
@@ -196,7 +196,7 @@ class UIMain(tk.Tk):
 
         #  Initialize attributes of main window
         self.title(form_name)
-        self.iconbitmap("images.ico")
+        self.iconbitmap("logo.ico")
         self.geometry(form_size)
         self.font = font
         self.option_add('*TCombobox*Listbox.font', self.font)
@@ -243,14 +243,23 @@ class UIMain(tk.Tk):
         #Set default value for method Combobox
         self.methodBox.set(self.__apiMethods[0])
         # Set bind value selection methodCombobox on URL label
-        self.methodBox.bind("<<ComboboxSelected>>", self.selected)
+        self.methodBox.bind("<<ComboboxSelected>>", self.method_selected)
+        self.orgBox.bind("<<ComboboxSelected>>", self.org_selected)
+        self.keyBox.bind("<<ComboboxSelected>>", self.key_selected)
 
         #Buttons
         self.dbAppendBtn = tk.Button(self, text="Добавить в справочник ключ", font=self.font,
                                      command=UIMain.create_window)
         bold_font = tkfont.Font(family="Arial", size=12, weight="bold")
         self.sendRequestBtn = tk.Button(self, text="Выполнить", font=bold_font, command=self.send_request)
-        self.searchBtn = tk.Button(self, text="Найти", font=self.font, command=self.search_btn_click)
+
+        self.searchPhoto = tk.PhotoImage(file=r"search.png").subsample(2,2)
+        self.searchBtn = tk.Button(self, text="Найти", image=self.searchPhoto, command=self.search_res)
+        self.searchBtn.image = self.searchPhoto
+
+        self.refreshPhoto = tk.PhotoImage(file=r"refresh.png")
+        self.refreshBtn = tk.Button(self, image=self.refreshPhoto, command=self.refresh)
+        self.refreshBtn.image = self.refreshPhoto
 
         #Text boxes
         self.jsonRequestBox = TextContext(self, height=50, font=self.font,
@@ -264,12 +273,13 @@ class UIMain(tk.Tk):
 
     #Define search function text
     def search_res(self):
+        loggerUI.info("Click on search button")
         self.jsonResponseBox.tag_remove('found', '1.0', "end")
         src = self.searchEntry.get()
         if src:
             idx = '1.0'
             while 1:
-                idx = self.jsonResponseBox.search(src, idx, nocase=True, stopindex="end")
+                idx = self.jsonResponseBox.search(src, idx, nocase=False, stopindex="end")
                 if not idx: break
                 last_idx = '%s+%dc' % (idx, len(src))
                 self.jsonResponseBox.tag_add('found', idx, last_idx)
@@ -279,10 +289,81 @@ class UIMain(tk.Tk):
             loggerUI.info(f"Search the text '{self.searchEntry.get()}' complete")
         self.searchEntry.focus_set()
 
+    #Supporting function changing text boxes on refresh data
+    def insert_json_and_hint(self, key, url):
+        db_client = MongoDB()
+        self.jsonRequestBox.delete("1.0", "end")
+        self.jsonRequestBox.insert("0.0", db_client.load_json(key, url))
+        self.jsonTipsBox["state"] = "normal"
+        self.jsonTipsBox.delete("1.0", "end")
+        self.jsonTipsBox.insert("0.0", db_client.load_hint(key, url))
+        self.jsonTipsBox["state"] = "disabled"
+        db_client.close()
+
+    # Function for refresh button
+    def refresh(self):
+        loggerUI.info("Click on refresh button")
+        try:
+            db_client = MongoDB()
+            api_keys = db_client.load_keys()
+            self.keyBox["values"] = [key for key in api_keys.keys()]
+            self.orgBox["values"] = [name for name in api_keys.values()]
+            url_method = self.__url_dict[self.methodBox.get()]
+            key = self.keyBox.get()
+            db_client.close()
+            if key and len(key) >= 8:
+                self.insert_json_and_hint(key, url_method)
+            self.jsonStatusLabel["text"] = "Data refreshed"
+            self.jsonStatusLabel["fg"] = "green"
+            loggerUI.info("Refresh complete, data loaded")
+        except pymongo.errors.AutoReconnect:
+            self.jsonStatusLabel["text"] = "Error Connection"
+            self.jsonStatusLabel["fg"] = "red"
+
+    # Function on api key box selected
+    def key_selected(self, event):
+        loggerUI.info("Combobox api key changed. Try to process refreshing data")
+        db_client = MongoDB()
+        key = self.keyBox.get()
+        api_keys = db_client.load_keys()
+        self.orgBox.set(api_keys[key])
+        url_method = self.__url_dict[self.methodBox.get()]
+        if key and len(key) >= 8:
+            self.insert_json_and_hint(key, url_method)
+        self.jsonStatusLabel["text"] = "Data refreshed"
+        self.jsonStatusLabel["fg"] = "green"
+        db_client.close()
+        loggerUI.info("Refresh complete, data loaded")
+
+    # Function on org name box selected
+    def org_selected(self, event):
+        loggerUI.info("Combobox orgname changed. Try to process refreshing data")
+        db_client = MongoDB()
+        name = self.orgBox.get()
+        api_keys = db_client.load_keys()
+        db_client.close()
+        keys = [key for key in api_keys if api_keys[key] == name]
+        if keys:
+            self.keyBox.set(keys[0])
+        key = self.keyBox.get()
+        if key and len(key) >= 8:
+            url_method = self.__url_dict[self.methodBox.get()]
+            self.insert_json_and_hint(key, url_method)
+
+
+
     # Select function for binding on selection Combobox
-    def selected(self, event):
+    def method_selected(self, event):
+        loggerUI.info("Method combobox changed")
         selection = self.methodBox.get()
         self.urlLabel["text"] = f"URL: {self.__url_dict[selection]}"
+        key = self.keyBox.get()
+        if key and len(key) >= 8:
+            self.insert_json_and_hint(key, self.__url_dict[selection])
+            loggerUI.info("method Combobox changed got refresh json and hint")
+        else:
+            loggerUI.info("method Combobox doesn't change data, because valid api key is missing")
+
 
     # Search function for binding event and logging
     def search_res_ev(self, event):
@@ -310,6 +391,7 @@ class UIMain(tk.Tk):
         self.methodBox.place(x=80, y=49, relwidth=0.4)
         self.dbAppendBtn.place(x=2, y=71, width=185)
         self.sendRequestBtn.place(x=187, y=71, width=100, height=28)
+        self.refreshBtn.place(x=287, y=71, width=28, height=28)
         self.urlLabel.place(x=2, y=97, width=450)
         self.jsonRequestLabel.place(x=2, y=115, width=38)
         self.jsonRequestBox.place(x=2, y=135, relwidth=0.37, relheight=0.8)
@@ -318,11 +400,12 @@ class UIMain(tk.Tk):
         self.jsonStatusLabel.place(relx=0.7, y=3, relwidth=0.3, height=55)
         self.jsonResponseLabel.place(relx=0.7, y=60, relwidth=0.3)
         self.jsonResponseBox.place(relx=0.62, y=105, relwidth=0.378, relheight=0.83)
-        self.searchEntry.place(relx=0.62, y=85, relwidth=0.3)
-        self.searchBtn.place(relx=0.92, y=85, width=40, height=20)
+        self.searchEntry.place(relx=0.62, y=80, relwidth=0.3, height=28)
+        self.searchBtn.place(relx=0.92, y=80, width=28, height=28)
 
         loggerUI.info("Initialized objects placed on main window successfully")
 
+    # Main function that sending api request on a clicking button
     def send_request(self):
         self.jsonResponseBox["state"] = "normal"
         loggerUI.info("Click button 'Выполнить'")
@@ -343,14 +426,23 @@ class UIMain(tk.Tk):
             loggerUI.info(f"got json data from json box: \n{data} and try sending request")
             request = APITrnRequest(apikey, url=url, data=data)
             response_code, response = request.post()
+            try:
+                db_client = MongoDB()
+                db_client.insert_json(apikey, url, data)
+                db_client.insert_hint(apikey, url)
+                db_client.close()
+            except pymongo.errors.AutoReconnect:
+                loggerDB.error("Connection error to MongoDB. Request data will saved after reconnect.")
+                loggerUI.error("Connection error to MongoDB. Request data will saved after reconnect. App data might display incorrectly")
             self.jsonStatusLabel["text"] = f"Status: {response_code}"
             if response_code == 200:
                 self.jsonStatusLabel["fg"] = "green"
             else:
                 self.jsonStatusLabel["fg"] = "red"
-
             self.jsonResponseBox.insert("0.0", response)
+            self.insert_json_and_hint(apikey, url)
         self.jsonResponseBox["state"] = "disabled"
+
 
     def __del__(self):
         loggerUI.info("Main window closed and application stopped")
